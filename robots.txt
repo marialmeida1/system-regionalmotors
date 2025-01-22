@@ -1,0 +1,13 @@
+Sitemap: https://regionalmotors.com.br/sitemap.xml
+
+User-agent: *
+Disallow: /ver*
+Disallow: /resultado*
+Disallow: /api
+Disallow: /banner
+Allow: /resultados?tipo_veiculo=carro&situacao_veiculo=1
+Allow: /resultados?tipo_veiculo=carro&situacao_veiculo=2
+Allow: /resultados?nome_categoria=HATCH
+Allow: /resultados?nome_categoria=PICAPE
+Allow: /resultados?nome_categoria=SEDAN
+Allow: /resultados?nome_categoria=SUV
