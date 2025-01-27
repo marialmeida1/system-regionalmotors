@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-
 use App\Models\Anunciantes;
 use App\Models\Anuncios;
 use App\Models\Marcas;
@@ -25,6 +24,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class anuciantesController extends Controller
 {
@@ -233,23 +234,36 @@ class anuciantesController extends Controller
         $anunciantes->instagram = $request->instagram;
         $anunciantes->facebook = $request->facebook;
 
+        // Gerando pasta do anunciante -> acessa a rota que faz isso e envia os dados
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post('https://api.regionalmotors.com.br/api/anunciantes/new_deploy', [
+            'site' => $request->site,
+        ]);
+        
+        if ($response->successful()) {
+            // Salva as informações no banco
+            $anunciantes->save();
+            $usuario = new User();
+            $usuario->name = $anunciantes->nome_empresa;
+            $usuario->email = $anunciantes->email;
+            $usuario->password = Hash::make($anunciantes->password);
+            $usuario->save();
+            $anunciantes->usuario_id = $usuario->id; // Salva em anunciantes o id criado na tabela usuários
+            $anunciantes->save();
 
-        // Salvando os dados no banco de dados -> Salva na Tabelas de Anunciantes
-        $anunciantes->save();
+            return response()->json(['message' => 'Anunciante cadastrado com sucesso', 201]);
+        } else {
+            Log::error('Erro ao iniciar o deploy', [
+                'response' => $response->json(),
+                'status' => $response->status(),
+            ]);
+            return response()->json([
+                'error' => 'Falha ao iniciar o deploy',
+                'details' => $response->json(),
+            ], 500);
+        }
 
-        // Agora irá criar um usuário com as informações inseridas
-        $usuario = new User();
-        $usuario->name = $anunciantes->nome_empresa;
-        $usuario->email = $anunciantes->email;
-        $usuario->password = Hash::make($anunciantes->password);
-        $usuario->save();
-
-        // Salva em anunciantes o id criado na tabela usuários
-        $anunciantes->usuario_id = $usuario->id;
-        $anunciantes->save();
-
-        // Retornando a resposta de sucesso
-        return response()->json(['message' => 'Anunciante cadastrado com sucesso'], 201);
     } catch (\Illuminate\Validation\ValidationException $e) {
         // Capturando a exceção de validação e formatando a resposta
         $errors = $e->validator->errors()->all();
@@ -882,4 +896,35 @@ class anuciantesController extends Controller
 
         return Response::make($xml->asXML(), 200)->header('Content-Type', 'application/xml');
     }
+
+    public function newDeploy(Request $request) {
+        $site = $request->input('site'); 
+    
+        $payload = [
+            'event_type' => 'deploy_new_revenda',
+            'client_payload' => [
+                'site' => $site,
+            ],
+        ];
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('GITHUB_TOKEN'),
+        ])->post('https://api.github.com/repos/marialmeida1/system-regionalmotors_front/dispatches', [
+            'event_type' => 'deploy_new_revenda',
+            'client_payload' => [
+                'site' => $request->input('site'),
+            ],
+        ]);
+        
+        if ($response->successful()) {
+            return response()->json(['message' => 'Deploy iniciado com sucesso!']);
+        } else {
+            $errorMessage = $response->json();
+            return response()->json([
+                'error' => 'Falha ao iniciar o deploy',
+                'details' => $errorMessage,
+            ], 500);
+        }
+    }
+    
 }

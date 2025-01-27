@@ -35,6 +35,9 @@ Route::get('/categoria_opcionais/listar_categoria_opcionais', 'App\Http\Controll
 Route::get('/regiao/listar_regiao', 'App\Http\Controllers\regiaoController@index');
 Route::get('/anunciantes/encontrar_anunciante/{id}', 'App\Http\Controllers\anuciantesController@encontrarAnunciante');
 
+// Rota teste de WebHook
+Route::post('/anunciantes/new_deploy','App\Http\Controllers\anuciantesController@newDeploy');
+
 
 // Gerando feed XML
 Route::get('/anunciantes/{id}/xml', 'App\Http\Controllers\anuciantesController@gerarXml')->name('anunciantes.xml');
