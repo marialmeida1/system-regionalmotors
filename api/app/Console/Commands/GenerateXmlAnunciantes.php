@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use App\Models\Anunciantes;
+use Illuminate\Support\Facades\Log;
 
 class GenerateXmlAnunciantes extends Command
 {
@@ -59,12 +60,12 @@ class GenerateXmlAnunciantes extends Command
                     $this->line("Código de status: " . $response->status());
                     $this->line("Corpo da resposta: " . $response->body());
                     $this->line("URL que gerou erro: " . url('/anunciantes' . '/' . $anunciante->id . '/xml'));
+
                 }
             } catch (\Exception $e) {
                 $this->error("Erro ao gerar XML para o anunciante {$anunciante->id}: " . $e->getMessage());
             }
         }        
-
         return 0;
     }
 
